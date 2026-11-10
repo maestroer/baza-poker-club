@@ -1,0 +1,473 @@
+import * as THREE from "three";
+
+// Все текстуры рисуются кодом на canvas при загрузке. Файлов изображений нет.
+// Для каждой детали делаем пару: цвет и карта «шероховатость (G) / металл (B)».
+
+const GOLD = "#d2ac62";
+const IVORY = "#f1ebdd";
+
+type Mode = "color" | "orm";
+
+function makeCanvas(w: number, h: number) {
+  const c = document.createElement("canvas");
+  c.width = w;
+  c.height = h;
+  return c;
+}
+
+function toTexture(c: HTMLCanvasElement, srgb: boolean) {
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = srgb ? THREE.SRGBColorSpace : THREE.NoColorSpace;
+  t.anisotropy = 8;
+  return t;
+}
+
+/** Цвет для карты ORM: G = шероховатость, B = металличность. */
+function orm(rough: number, metal: number) {
+  return `rgb(0,${Math.round(rough * 255)},${Math.round(metal * 255)})`;
+}
+
+/** Возвращает цвет в зависимости от того, какую карту сейчас рисуем. */
+function ink(mode: Mode, color: string, rough: number, metal = 0) {
+  return mode === "color" ? color : orm(rough, metal);
+}
+
+export type TexturePair = { map: THREE.CanvasTexture; orm: THREE.CanvasTexture };
+
+function pair(w: number, h: number, draw: (ctx: CanvasRenderingContext2D, mode: Mode) => void): TexturePair {
+  const a = makeCanvas(w, h);
+  const b = makeCanvas(w, h);
+  draw(a.getContext("2d")!, "color");
+  draw(b.getContext("2d")!, "orm");
+  return { map: toTexture(a, true), orm: toTexture(b, false) };
+}
+
+/* ───────────────────────────── Фишки ───────────────────────────── */
+
+export type ChipStyle = { base: string; inlay: string; insert: string; value: string };
+
+export const CHIP_STYLES: ChipStyle[] = [
+  { base: "#15161a", inlay: "#0c0d10", insert: GOLD, value: "1000" },
+  { base: "#8e1b1f", inlay: "#6d1216", insert: IVORY, value: "500" },
+  { base: "#11543d", inlay: "#0b3d2c", insert: IVORY, value: "100" },
+  { base: "#e9e2d2", inlay: "#f4eee1", insert: "#8e1b1f", value: "25" },
+];
+
+export function chipTextures(style: ChipStyle): TexturePair {
+  const S = 512;
+  const light = style.base === "#e9e2d2";
+  return pair(S, S, (ctx, mode) => {
+    const c = S / 2;
+    const R = S * 0.49; // край фишки (совпадает с планарной развёрткой)
+    const foilIsMetal = !light;
+    const foil = light ? "#8e1b1f" : GOLD;
+
+    ctx.fillStyle = ink(mode, style.base, 0.62);
+    ctx.fillRect(0, 0, S, S);
+
+    // Шесть вставок по краю. Тянутся за пределы круга, поэтому ребро фишки
+    // получает такие же полосы автоматически.
+    ctx.fillStyle = ink(mode, style.insert, style.insert === GOLD ? 0.3 : 0.6, style.insert === GOLD ? 1 : 0);
+    for (let i = 0; i < 6; i++) {
+      const a = (i / 6) * Math.PI * 2;
+      const w = 0.2;
+      ctx.beginPath();
+      ctx.arc(c, c, R * 1.5, a - w, a + w);
+      ctx.arc(c, c, R * 0.76, a + w, a - w, true);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    // Мелкие метки между вставками
+    ctx.fillStyle = ink(mode, style.insert, 0.48, style.insert === GOLD ? 1 : 0);
+    for (let i = 0; i < 6; i++) {
+      const a = ((i + 0.5) / 6) * Math.PI * 2;
+      ctx.beginPath();
+      ctx.arc(c + Math.cos(a) * R * 0.87, c + Math.sin(a) * R * 0.87, R * 0.035, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Кольцо фольги
+    ctx.strokeStyle = ink(mode, foil, 0.22, foilIsMetal ? 1 : 0);
+    ctx.lineWidth = R * 0.022;
+    ctx.beginPath();
+    ctx.arc(c, c, R * 0.72, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Центральная вклейка
+    ctx.fillStyle = ink(mode, style.inlay, 0.42);
+    ctx.beginPath();
+    ctx.arc(c, c, R * 0.6, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.lineWidth = R * 0.016;
+    ctx.beginPath();
+    ctx.arc(c, c, R * 0.55, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Номинал
+    ctx.fillStyle = ink(mode, foil, 0.22, foilIsMetal ? 1 : 0);
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    const big = style.value.length > 3 ? 0.3 : 0.38;
+    ctx.font = `700 ${R * big}px Georgia, "Times New Roman", serif`;
+    ctx.fillText(style.value, c, c + R * 0.02);
+
+    // Надпись по кругу — на турнирных фишках так и пишут
+    const text = "NO CASH VALUE · SPORT POKER · ";
+    ctx.font = `600 ${R * 0.085}px Arial, Helvetica, sans-serif`;
+    const rr = R * 0.435;
+    for (let i = 0; i < text.length; i++) {
+      const a = (i / text.length) * Math.PI * 2 - Math.PI / 2;
+      ctx.save();
+      ctx.translate(c + Math.cos(a) * rr, c + Math.sin(a) * rr);
+      ctx.rotate(a + Math.PI / 2);
+      ctx.fillText(text[i], 0, 0);
+      ctx.restore();
+    }
+  });
+}
+
+/* ───────────────────────────── Масти ───────────────────────────── */
+
+function heartPath(ctx: CanvasRenderingContext2D) {
+  ctx.beginPath();
+  ctx.moveTo(0, 0.6);
+  ctx.bezierCurveTo(-0.25, 0.35, -0.6, 0.12, -0.6, -0.18);
+  ctx.bezierCurveTo(-0.6, -0.58, -0.1, -0.6, 0, -0.25);
+  ctx.bezierCurveTo(0.1, -0.6, 0.6, -0.58, 0.6, -0.18);
+  ctx.bezierCurveTo(0.6, 0.12, 0.25, 0.35, 0, 0.6);
+  ctx.closePath();
+}
+
+function spadePath(ctx: CanvasRenderingContext2D) {
+  ctx.beginPath();
+  ctx.moveTo(0, -0.62);
+  ctx.bezierCurveTo(0.25, -0.35, 0.6, -0.1, 0.6, 0.18);
+  ctx.bezierCurveTo(0.6, 0.52, 0.2, 0.56, 0.06, 0.3);
+  ctx.lineTo(0.2, 0.62);
+  ctx.lineTo(-0.2, 0.62);
+  ctx.lineTo(-0.06, 0.3);
+  ctx.bezierCurveTo(-0.2, 0.56, -0.6, 0.52, -0.6, 0.18);
+  ctx.bezierCurveTo(-0.6, -0.1, -0.25, -0.35, 0, -0.62);
+  ctx.closePath();
+}
+
+function suit(ctx: CanvasRenderingContext2D, kind: "spade" | "heart", x: number, y: number, size: number) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(size, size);
+  if (kind === "spade") spadePath(ctx);
+  else heartPath(ctx);
+  ctx.fill();
+  ctx.restore();
+}
+
+function crown(ctx: CanvasRenderingContext2D, x: number, y: number, size: number) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(size, size);
+  ctx.beginPath();
+  ctx.moveTo(-0.5, 0.26);
+  ctx.lineTo(-0.56, -0.2);
+  ctx.lineTo(-0.27, 0.02);
+  ctx.lineTo(0, -0.38);
+  ctx.lineTo(0.27, 0.02);
+  ctx.lineTo(0.56, -0.2);
+  ctx.lineTo(0.5, 0.26);
+  ctx.closePath();
+  ctx.fill();
+  for (const [px, py] of [
+    [-0.56, -0.26],
+    [0, -0.44],
+    [0.56, -0.26],
+  ]) {
+    ctx.beginPath();
+    ctx.arc(px, py, 0.07, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.fillRect(-0.5, 0.32, 1, 0.09);
+  ctx.restore();
+}
+
+/* ───────────────────────────── Карты ───────────────────────────── */
+
+export const CARD_PX = 10; // пикселей на миллиметр
+
+export function kingTextures(kind: "spade" | "heart"): TexturePair {
+  const W = 63 * CARD_PX;
+  const H = 88 * CARD_PX;
+  const suitColor = kind === "spade" ? "#14161a" : "#b0201d";
+  const foil = "#b8924a";
+
+  return pair(W, H, (ctx, mode) => {
+    ctx.fillStyle = ink(mode, "#f5f0e4", 0.4);
+    ctx.fillRect(0, 0, W, H);
+
+    // Рамка двойной линией
+    ctx.strokeStyle = ink(mode, foil, 0.2, 1);
+    ctx.lineWidth = 3;
+    const fx = 118;
+    const fy = 92;
+    ctx.strokeRect(fx, fy, W - fx * 2, H - fy * 2);
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(fx + 9, fy + 9, W - (fx + 9) * 2, H - (fy + 9) * 2);
+
+    const half = () => {
+      // Индекс в углу
+      ctx.fillStyle = ink(mode, suitColor, 0.36);
+      ctx.textAlign = "center";
+      ctx.textBaseline = "alphabetic";
+      ctx.font = `700 104px Georgia, "Times New Roman", serif`;
+      ctx.fillText("K", 62, 128);
+      suit(ctx, kind, 62, 180, 44);
+
+      // Корона и большая «K» внутри рамки
+      ctx.fillStyle = ink(mode, foil, 0.2, 1);
+      crown(ctx, W / 2, 178, 118);
+      ctx.fillStyle = ink(mode, suitColor, 0.36);
+      ctx.font = `700 196px Georgia, "Times New Roman", serif`;
+      ctx.fillText("K", W / 2, 388);
+    };
+
+    half();
+    ctx.save();
+    ctx.translate(W, H);
+    ctx.rotate(Math.PI);
+    half();
+    ctx.restore();
+
+    // Центральная масть с тонкими линиями по бокам
+    ctx.fillStyle = ink(mode, suitColor, 0.36);
+    suit(ctx, kind, W / 2, H / 2, 46);
+    ctx.fillStyle = ink(mode, foil, 0.2, 1);
+    ctx.fillRect(fx + 30, H / 2 - 1.5, 120, 3);
+    ctx.fillRect(W - fx - 150, H / 2 - 1.5, 120, 3);
+  });
+}
+
+export function cardBackTextures(): TexturePair {
+  const W = 63 * CARD_PX;
+  const H = 88 * CARD_PX;
+  return pair(W, H, (ctx, mode) => {
+    ctx.fillStyle = ink(mode, "#f5f0e4", 0.4);
+    ctx.fillRect(0, 0, W, H);
+    const m = 38;
+    ctx.fillStyle = ink(mode, "#0f3d2d", 0.38);
+    ctx.fillRect(m, m, W - m * 2, H - m * 2);
+
+    // Ромбовидная сетка
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(m, m, W - m * 2, H - m * 2);
+    ctx.clip();
+    ctx.strokeStyle = ink(mode, "#c9a45c", 0.22, 1);
+    ctx.lineWidth = 1.6;
+    for (let i = -H; i < W + H; i += 34) {
+      ctx.beginPath();
+      ctx.moveTo(i, 0);
+      ctx.lineTo(i + H * 0.6, H);
+      ctx.moveTo(i, 0);
+      ctx.lineTo(i - H * 0.6, H);
+      ctx.stroke();
+    }
+    ctx.restore();
+
+    ctx.fillStyle = ink(mode, "#0f3d2d", 0.38);
+    ctx.beginPath();
+    ctx.arc(W / 2, H / 2, 96, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = ink(mode, "#c9a45c", 0.22, 1);
+    ctx.lineWidth = 4;
+    ctx.stroke();
+    ctx.fillStyle = ink(mode, "#c9a45c", 0.22, 1);
+    suit(ctx, "spade", W / 2, H / 2, 74);
+  });
+}
+
+/* ───────────────────────── Треугольник ALL-IN ───────────────────────── */
+
+/** side — сторона треугольника в мм. UV: u = x/side + 0.5, v = (y + h/3)/side. */
+export function allInTextures(side: number): TexturePair {
+  const S = 1024;
+  const h = (side * Math.sqrt(3)) / 2;
+  const px = (x: number) => (x / side + 0.5) * S;
+  const py = (y: number) => S - ((y + h / 3) / side) * S;
+  const k = S / side;
+
+  const tri = (ctx: CanvasRenderingContext2D, inset: number) => {
+    // Треугольник, сжатый к центру масс на inset миллиметров
+    const s = (h / 3 - inset) / (h / 3);
+    ctx.beginPath();
+    ctx.moveTo(px(0), py(((2 * h) / 3) * s));
+    ctx.lineTo(px((side / 2) * s), py((-h / 3) * s));
+    ctx.lineTo(px((-side / 2) * s), py((-h / 3) * s));
+    ctx.closePath();
+  };
+
+  return pair(S, S, (ctx, mode) => {
+    ctx.fillStyle = ink(mode, "#9c1418", 0.16);
+    ctx.fillRect(0, 0, S, S);
+
+    ctx.lineJoin = "round";
+    ctx.strokeStyle = ink(mode, GOLD, 0.2, 1);
+    ctx.lineWidth = 1.1 * k;
+    tri(ctx, 5.2);
+    ctx.stroke();
+    ctx.lineWidth = 0.35 * k;
+    tri(ctx, 7.4);
+    ctx.stroke();
+
+    ctx.fillStyle = ink(mode, IVORY, 0.3);
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.font = `900 ${15.5 * k}px "Arial Black", "Arial Bold", Impact, Arial, sans-serif`;
+    ctx.fillText("ALL-IN", px(0), py(-h / 3 + 19));
+
+    ctx.fillStyle = ink(mode, GOLD, 0.2, 1);
+    suit(ctx, "spade", px(0), py(h * 0.22), 7 * k);
+  });
+}
+
+/* ───────────────────────────── Сукно ───────────────────────────── */
+
+/** w, h — габарит сукна в мм; a — половина прямого участка, r — радиус. */
+export function feltTextures(
+  w: number,
+  h: number,
+  a: number,
+  r: number,
+  line: number,
+  box: { w: number; d: number; r: number },
+  boxes: { x: number; z: number; along: boolean }[],
+) {
+  // Лёгкое затемнение к бортам и напечатанная линия ставок по форме стола.
+  const k = 2048 / w;
+  const W = 2048;
+  const H = Math.round(h * k);
+  const g = makeCanvas(W, H);
+  const ctx = g.getContext("2d")!;
+  ctx.fillStyle = "#4c4c4c";
+  ctx.fillRect(0, 0, W, H);
+  ctx.save();
+  ctx.translate(W / 2, H / 2);
+  ctx.scale(w / h, 1);
+  const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, H * 0.56);
+  grad.addColorStop(0, "#a2a2a2");
+  grad.addColorStop(0.55, "#7c7c7c");
+  grad.addColorStop(1, "#4c4c4c");
+  ctx.fillStyle = grad;
+  ctx.fillRect(-W, -H, W * 2, H * 2);
+  ctx.restore();
+
+  const stadium = (inset: number) => {
+    const rr = (r - inset) * k;
+    const aa = a * k;
+    ctx.beginPath();
+    ctx.moveTo(W / 2 - aa, H / 2 - rr);
+    ctx.lineTo(W / 2 + aa, H / 2 - rr);
+    ctx.arc(W / 2 + aa, H / 2, rr, -Math.PI / 2, Math.PI / 2);
+    ctx.lineTo(W / 2 - aa, H / 2 + rr);
+    ctx.arc(W / 2 - aa, H / 2, rr, Math.PI / 2, Math.PI * 1.5);
+    ctx.closePath();
+  };
+  ctx.strokeStyle = "rgba(255,244,214,0.5)";
+  ctx.lineWidth = 2.2 * k;
+  stadium(line);
+  ctx.stroke();
+  ctx.strokeStyle = "rgba(255,244,214,0.26)";
+  ctx.lineWidth = 0.8 * k;
+  stadium(line + 6);
+  ctx.stroke();
+
+  // Боксы игроков: скруглённые рамки между линией ставок и бортом
+  for (const b of boxes) {
+    const bw = (b.along ? box.w : box.d) * k;
+    const bh = (b.along ? box.d : box.w) * k;
+    const x = W / 2 + b.x * k - bw / 2;
+    const y = H / 2 + b.z * k - bh / 2;
+    ctx.beginPath();
+    ctx.roundRect(x, y, bw, bh, box.r * k);
+    ctx.fillStyle = "rgba(0,0,0,0.16)";
+    ctx.fill();
+    ctx.strokeStyle = "rgba(255,244,214,0.85)";
+    ctx.lineWidth = 2 * k;
+    ctx.stroke();
+  }
+
+  // Мелкий шум ткани для рельефа
+  const N = 256;
+  const n = makeCanvas(N, N);
+  const nctx = n.getContext("2d")!;
+  const img = nctx.createImageData(N, N);
+  let seed = 1337;
+  const rnd = () => ((seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296);
+  for (let i = 0; i < N * N; i++) {
+    const v = 110 + rnd() * 90;
+    img.data[i * 4] = img.data[i * 4 + 1] = img.data[i * 4 + 2] = v;
+    img.data[i * 4 + 3] = 255;
+  }
+  nctx.putImageData(img, 0, 0);
+
+  const fade = toTexture(g, true);
+  const bump = toTexture(n, false);
+  bump.wrapS = bump.wrapT = THREE.RepeatWrapping;
+  bump.repeat.set(w / 40, h / 40);
+  return { fade, bump };
+}
+
+/** Тёмный орех для дорожки: продольные волокна. */
+export function woodTexture() {
+  const W = 1024;
+  const H = 128;
+  const c = makeCanvas(W, H);
+  const ctx = c.getContext("2d")!;
+  ctx.fillStyle = "#3b2113";
+  ctx.fillRect(0, 0, W, H);
+  let seed = 99;
+  const rnd = () => ((seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296);
+  for (let i = 0; i < 240; i++) {
+    const y = rnd() * H;
+    const dark = rnd() < 0.6;
+    ctx.strokeStyle = dark ? `rgba(14,6,2,${0.12 + rnd() * 0.3})` : `rgba(140,84,44,${0.06 + rnd() * 0.16})`;
+    ctx.lineWidth = 0.5 + rnd() * 2.4;
+    ctx.beginPath();
+    const amp = rnd() * 5;
+    const ph = rnd() * 6.28;
+    const waves = 1 + Math.floor(rnd() * 3); // целое число волн — без шва на стыке
+    for (let x = 0; x <= W; x += 16) {
+      const yy = y + Math.sin((x / W) * Math.PI * 2 * waves + ph) * amp;
+      if (x === 0) ctx.moveTo(x, yy);
+      else ctx.lineTo(x, yy);
+    }
+    ctx.stroke();
+  }
+  const t = toTexture(c, true);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  return t;
+}
+
+/** Тёмная сетка для режима чертежа. */
+export function gridTexture() {
+  const S = 512;
+  const c = makeCanvas(S, S);
+  const ctx = c.getContext("2d")!;
+  ctx.fillStyle = "#061426";
+  ctx.fillRect(0, 0, S, S);
+  ctx.strokeStyle = "rgba(140,190,255,0.28)";
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= 8; i++) {
+    const p = (i / 8) * S;
+    ctx.beginPath();
+    ctx.moveTo(p, 0);
+    ctx.lineTo(p, S);
+    ctx.moveTo(0, p);
+    ctx.lineTo(S, p);
+    ctx.stroke();
+  }
+  ctx.strokeStyle = "rgba(140,190,255,0.6)";
+  ctx.strokeRect(0, 0, S, S);
+  const t = toTexture(c, true);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  t.repeat.set(11.4, 5.4); // клетка ~100 мм
+  return t;
+}
