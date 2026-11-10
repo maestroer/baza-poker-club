@@ -4,11 +4,10 @@ import { useEffect, useRef, useState } from "react";
 import { emit } from "@/lib/bus";
 import { SITE } from "@/lib/site";
 
-// Расписание — заглушка. Замените на реальные игры клуба.
+// Форматы игр клуба. Описания — заглушки, поправьте под свои правила.
 const GAMES = [
-  { id: "wed", day: "Среда", time: "19:30", name: "Турнир для новичков", note: "Объясняем правила за столом" },
-  { id: "fri", day: "Пятница", time: "20:00", name: "Главный турнир недели", note: "Очки в рейтинг сезона ×2" },
-  { id: "sun", day: "Воскресенье", time: "17:00", name: "Глубокие стеки", note: "Длинная игра, больше решений" },
+  { id: "classic", name: "Классик Техас Холдем", note: "Классический турнир: играем, пока все фишки не соберёт один игрок" },
+  { id: "pko", name: "Progressive Knockout", note: "За каждого выбитого соперника — бонусные очки, и с каждым разом их больше" },
 ];
 
 async function copyText(text: string) {
@@ -30,7 +29,7 @@ async function copyText(text: string) {
 }
 
 export default function SignupForm() {
-  const [game, setGame] = useState("fri");
+  const [game, setGame] = useState("classic");
   const [name, setName] = useState("");
   const [username, setUsername] = useState("");
   const [errors, setErrors] = useState<{ name?: string; username?: string }>({});
@@ -49,7 +48,7 @@ export default function SignupForm() {
     if (Object.keys(err).length) return;
 
     const g = GAMES.find((x) => x.id === game)!;
-    const message = `Здравствуйте! Хочу записаться на игру.\n${g.name} — ${g.day.toLowerCase()}, ${g.time}\nИмя: ${name.trim()}\nTelegram: @${nick}`;
+    const message = `Здравствуйте! Хочу записаться на игру.\nФормат: ${g.name}\nИмя: ${name.trim()}\nTelegram: @${nick}`;
     // Открываем личку менеджера с уже набранным сообщением — игроку остаётся нажать «Отправить».
     window.open(`https://t.me/${SITE.managerTelegram}?text=${encodeURIComponent(message)}`, "_blank", "noopener");
     emit("burst");
@@ -65,14 +64,10 @@ export default function SignupForm() {
   return (
     <form className="signup" noValidate onSubmit={submit}>
       <fieldset className="games">
-        <legend className="field-label">Ближайшие игры</legend>
+        <legend className="field-label">Формат игры</legend>
         {GAMES.map((g) => (
           <label key={g.id} className={`game ${game === g.id ? "game-on" : ""}`}>
             <input type="radio" name="game" value={g.id} checked={game === g.id} onChange={() => setGame(g.id)} />
-            <span className="game-when">
-              <b>{g.day}</b>
-              {g.time}
-            </span>
             <span className="game-what">
               <b>{g.name}</b>
               {g.note}
