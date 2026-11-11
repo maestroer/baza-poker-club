@@ -11,7 +11,7 @@ import { buildPile, type ChipRest } from "./layout";
 import { Sound } from "./sound";
 import { buildStudioEnvironment } from "./studio";
 import { BOX, BOXES, feltGeometry, inlayGeometries, railGeometry, TABLE, trackGeometry } from "./table";
-import { allInTextures, cardBackTextures, CHIP_STYLES, chipTextures, feltTextures, gridTexture, kingTextures, woodTexture } from "./textures";
+import { allInTextures, cardBackTextures, CHIP_STYLES, chipTextures, feltTextures, gridTexture, aceTextures, woodTexture } from "./textures";
 
 export type Callout = { el: HTMLElement; line: SVGLineElement; key: "chips" | "cards" | "allin"; side: "l" | "r" };
 export type FrameState = { seq: number; labels: number; scrollY: number };
@@ -272,7 +272,7 @@ export class Engine {
     const geo = cardGeometry();
 
     const card = (kind: "spade" | "heart", x: number, y: number, z: number, yaw: number, t0: number, i: number): Flyer => {
-      const tex = kingTextures(kind);
+      const tex = aceTextures(kind);
       const face = new THREE.MeshPhysicalMaterial({
         map: tex.map,
         roughnessMap: tex.orm,
@@ -524,7 +524,7 @@ export class Engine {
     } else {
       const k = 1 - Math.exp(-dt * 4.2);
       for (const key of Object.keys(target) as (keyof Shot)[]) this.shot[key] += (target[key] - this.shot[key]) * k;
-      this.seq += (seqTarget - this.seq) * (1 - Math.exp(-dt * 6.5));
+      this.seq += (seqTarget - this.seq) * (1 - Math.exp(-dt * 3.4));
       this.pointerSm.lerp(this.pointer, 1 - Math.exp(-dt * 3));
     }
 

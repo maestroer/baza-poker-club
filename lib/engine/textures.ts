@@ -8,6 +8,24 @@ const IVORY = "#f1ebdd";
 
 type Mode = "color" | "orm";
 
+/** Семейство фирменного шрифта (Russo One), которое подключил next/font. */
+function brandFamily() {
+  const v = getComputedStyle(document.documentElement).getPropertyValue("--font-display").trim();
+  return v || '"Arial Black", Arial, sans-serif';
+}
+
+/** Надпись «БАЗА» в начертании логотипа: тяжёлый гротеск с наклоном. */
+function brand(ctx: CanvasRenderingContext2D, x: number, y: number, size: number, text = "БАЗА") {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.transform(1, 0, -0.2, 1, 0, 0);
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.font = `400 ${size}px ${brandFamily()}`;
+  ctx.fillText(text, 0, 0);
+  ctx.restore();
+}
+
 function makeCanvas(w: number, h: number) {
   const c = document.createElement("canvas");
   c.width = w;
@@ -113,7 +131,7 @@ export function chipTextures(style: ChipStyle): TexturePair {
     ctx.fillText(style.value, c, c + R * 0.02);
 
     // Надпись по кругу — на турнирных фишках так и пишут
-    const text = "NO CASH VALUE · SPORT POKER · ";
+    const text = "БАЗА · NO CASH VALUE · БАЗА · SPORT POKER · ";
     ctx.font = `600 ${R * 0.085}px Arial, Helvetica, sans-serif`;
     const rr = R * 0.435;
     for (let i = 0; i < text.length; i++) {
@@ -193,7 +211,7 @@ function crown(ctx: CanvasRenderingContext2D, x: number, y: number, size: number
 
 export const CARD_PX = 10; // пикселей на миллиметр
 
-export function kingTextures(kind: "spade" | "heart"): TexturePair {
+export function aceTextures(kind: "spade" | "heart"): TexturePair {
   const W = 63 * CARD_PX;
   const H = 88 * CARD_PX;
   const suitColor = kind === "spade" ? "#14161a" : "#b0201d";
@@ -203,32 +221,19 @@ export function kingTextures(kind: "spade" | "heart"): TexturePair {
     ctx.fillStyle = ink(mode, "#f5f0e4", 0.4);
     ctx.fillRect(0, 0, W, H);
 
-    // Рамка двойной линией
-    ctx.strokeStyle = ink(mode, foil, 0.2, 1);
-    ctx.lineWidth = 3;
-    const fx = 118;
-    const fy = 92;
-    ctx.strokeRect(fx, fy, W - fx * 2, H - fy * 2);
-    ctx.lineWidth = 1.5;
-    ctx.strokeRect(fx + 9, fy + 9, W - (fx + 9) * 2, H - (fy + 9) * 2);
-
     const half = () => {
-      // Индекс в углу
+      // индекс в углу
       ctx.fillStyle = ink(mode, suitColor, 0.36);
       ctx.textAlign = "center";
       ctx.textBaseline = "alphabetic";
-      ctx.font = `700 104px Georgia, "Times New Roman", serif`;
-      ctx.fillText("K", 62, 128);
-      suit(ctx, kind, 62, 180, 44);
-
-      // Корона и большая «K» внутри рамки
+      ctx.font = `700 110px Georgia, "Times New Roman", serif`;
+      ctx.fillText("A", 64, 132);
+      suit(ctx, kind, 64, 186, 46);
+      // брендирование: «БАЗА» золотой фольгой над центральной мастью
       ctx.fillStyle = ink(mode, foil, 0.2, 1);
-      crown(ctx, W / 2, 178, 118);
-      ctx.fillStyle = ink(mode, suitColor, 0.36);
-      ctx.font = `700 196px Georgia, "Times New Roman", serif`;
-      ctx.fillText("K", W / 2, 388);
+      brand(ctx, W / 2, 206, 62);
+      ctx.fillRect(W / 2 - 96, 250, 192, 3);
     };
-
     half();
     ctx.save();
     ctx.translate(W, H);
@@ -236,12 +241,9 @@ export function kingTextures(kind: "spade" | "heart"): TexturePair {
     half();
     ctx.restore();
 
-    // Центральная масть с тонкими линиями по бокам
+    // крупная масть в центре
     ctx.fillStyle = ink(mode, suitColor, 0.36);
-    suit(ctx, kind, W / 2, H / 2, 46);
-    ctx.fillStyle = ink(mode, foil, 0.2, 1);
-    ctx.fillRect(fx + 30, H / 2 - 1.5, 120, 3);
-    ctx.fillRect(W - fx - 150, H / 2 - 1.5, 120, 3);
+    suit(ctx, kind, W / 2, H / 2, 150);
   });
 }
 
@@ -280,7 +282,7 @@ export function cardBackTextures(): TexturePair {
     ctx.lineWidth = 4;
     ctx.stroke();
     ctx.fillStyle = ink(mode, "#c9a45c", 0.22, 1);
-    suit(ctx, "spade", W / 2, H / 2, 74);
+    brand(ctx, W / 2, H / 2 + 4, 58);
   });
 }
 
@@ -378,6 +380,17 @@ export function feltTextures(
   ctx.lineWidth = 0.8 * k;
   stadium(line + 6);
   ctx.stroke();
+
+  // Логотип клуба в центре стола, напечатан на сукне
+  ctx.fillStyle = "rgba(255,244,214,0.34)";
+  brand(ctx, W / 2, H / 2 - 8 * k, 104 * k);
+  ctx.fillStyle = "rgba(255,244,214,0.3)";
+  ctx.font = `700 ${11.5 * k}px Arial, Helvetica, sans-serif`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  const sub = "КЛУБ СПОРТИВНОГО ПОКЕРА";
+  const step = 15.5 * k;
+  for (let i = 0; i < sub.length; i++) ctx.fillText(sub[i], W / 2 + (i - (sub.length - 1) / 2) * step, H / 2 + 62 * k);
 
   // Боксы игроков: скруглённые рамки между линией ставок и бортом
   for (const b of boxes) {

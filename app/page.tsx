@@ -59,12 +59,12 @@ export default function Home() {
           </div>
         </section>
 
-        {/* 3D-сцена: фишки, короли, ALL-IN. Высота секции — длина «фильма». */}
+        {/* 3D-сцена: фишки, тузы, ALL-IN. Высота секции — длина «фильма». */}
         <section className="stage" data-cue="stage" aria-label="Раздача">
           <div className="stage-pin">
             <div className="cap" data-cap data-from="0.56" data-to="0.75">
-              <h2>Два короля.</h2>
-              <p>Вторая по силе стартовая рука в холдеме. Сыграть её правильно — уже мастерство.</p>
+              <h2>Два туза.</h2>
+              <p>Сильнейшая стартовая рука в холдеме. Сыграть её правильно — уже мастерство.</p>
             </div>
             <div className="cap cap-allin" data-cap data-from="0.8" data-to="0.915">
               <h2>All-in.</h2>

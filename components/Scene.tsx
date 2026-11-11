@@ -10,7 +10,7 @@ const smooth = (t: number) => t * t * (3 - 2 * t);
 
 const CALLOUTS: { key: Callout["key"]; side: Callout["side"]; title: string; note: string }[] = [
   { key: "chips", side: "l", title: "Турнирные фишки", note: "39 мм · без денежного номинала" },
-  { key: "cards", side: "r", title: "Карманные короли", note: "K♠ K♥ · вторая по силе рука" },
+  { key: "cards", side: "r", title: "Карманные тузы", note: "A♠ A♥ · сильнейшая рука" },
   { key: "allin", side: "r", title: "Кнопка ALL-IN", note: "86 мм · эмаль и золото" },
 ];
 
@@ -48,6 +48,8 @@ export default function Scene() {
 
     (async () => {
       try {
+        const family = getComputedStyle(document.documentElement).getPropertyValue("--font-display").trim();
+        if (family) await document.fonts.load(`400 64px ${family}`, "БАЗА КЛУБ").catch(() => {});
         const { Engine } = await import("@/lib/engine/Engine");
         if (dead || !canvasRef.current) return;
         engine = new Engine(canvasRef.current);

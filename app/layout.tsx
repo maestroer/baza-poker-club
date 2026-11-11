@@ -1,11 +1,13 @@
 import type { Metadata, Viewport } from "next";
-import { JetBrains_Mono, Manrope, Playfair_Display } from "next/font/google";
+import { Montserrat, Russo_One } from "next/font/google";
 import { SITE } from "@/lib/site";
 import "./globals.css";
 
-const display = Playfair_Display({ variable: "--font-display", subsets: ["latin", "cyrillic"], weight: ["500", "700", "900"] });
-const body = Manrope({ variable: "--font-body", subsets: ["latin", "cyrillic"] });
-const mono = JetBrains_Mono({ variable: "--font-mono", subsets: ["latin", "cyrillic"], weight: ["400", "500"] });
+// Шрифты под логотип клуба: Russo One — тяжёлый спортивный гротеск для заголовков,
+// Montserrat — основной текст и разряженные подписи («КЛУБ СПОРТИВНОГО ПОКЕРА»).
+const display = Russo_One({ variable: "--font-display", subsets: ["latin", "cyrillic"], weight: "400" });
+const body = Montserrat({ variable: "--font-body", subsets: ["latin", "cyrillic"] });
+const mono = Montserrat({ variable: "--font-mono", subsets: ["latin", "cyrillic"], weight: ["600", "700"] });
 
 export const metadata: Metadata = {
   title: `${SITE.name} — ${SITE.tagline.toLowerCase()}`,
