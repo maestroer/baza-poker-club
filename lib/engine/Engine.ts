@@ -185,21 +185,21 @@ export class Engine {
     // Дорожка: тёмный орех под лаком — в ней отражаются полосы студийного света
     const wood = new THREE.MeshPhysicalMaterial({
       map: woodTexture(),
-      roughness: 0.38,
-      clearcoat: 1,
+      roughness: 0.82,
+      clearcoat: 0,
       clearcoatRoughness: 0.08,
       side: THREE.DoubleSide,
     });
-    const gold = new THREE.MeshPhysicalMaterial({ color: 0xdcb469, metalness: 1, roughness: 0.2, side: THREE.DoubleSide });
+    const gold = new THREE.MeshPhysicalMaterial({ color: 0xdcb469, metalness: 1, roughness: 0.55, side: THREE.DoubleSide });
     const leatherBump = bump.clone();
     leatherBump.repeat.set(60, 3);
     leatherBump.needsUpdate = true;
     const leather = new THREE.MeshPhysicalMaterial({
       color: 0x17100d,
-      roughness: 0.5,
+      roughness: 0.9,
       bumpMap: leatherBump,
       bumpScale: 0.35,
-      clearcoat: 0.25,
+      clearcoat: 0,
       clearcoatRoughness: 0.45,
       sheen: 0.4,
       sheenColor: new THREE.Color(0x6b4a36),
@@ -241,7 +241,7 @@ export class Engine {
         metalnessMap: tex.orm,
         roughness: 1,
         metalness: 1,
-        clearcoat: 0.1,
+        clearcoat: 0,
         clearcoatRoughness: 0.55,
       });
       const mesh = new THREE.InstancedMesh(geo, mat, count);
@@ -258,7 +258,7 @@ export class Engine {
   private stackTop = new THREE.Vector3();
 
   private buildCardsAndButton() {
-    const edge = new THREE.MeshPhysicalMaterial({ color: 0xece6d8, roughness: 0.55 });
+    const edge = new THREE.MeshPhysicalMaterial({ color: 0xece6d8, roughness: 0.9 });
     const back = cardBackTextures();
     const backMat = new THREE.MeshPhysicalMaterial({
       map: back.map,
@@ -279,7 +279,7 @@ export class Engine {
         metalnessMap: tex.orm,
         roughness: 1,
         metalness: 1,
-        clearcoat: 0.35,
+        clearcoat: 0,
         clearcoatRoughness: 0.3,
       });
       const mesh = new THREE.Mesh(geo, [face, backMat, edge]);

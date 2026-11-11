@@ -80,12 +80,12 @@ export function chipTextures(style: ChipStyle): TexturePair {
     const foilIsMetal = !light;
     const foil = light ? "#8e1b1f" : GOLD;
 
-    ctx.fillStyle = ink(mode, style.base, 0.62);
+    ctx.fillStyle = ink(mode, style.base, 0.92);
     ctx.fillRect(0, 0, S, S);
 
     // Шесть вставок по краю. Тянутся за пределы круга, поэтому ребро фишки
     // получает такие же полосы автоматически.
-    ctx.fillStyle = ink(mode, style.insert, style.insert === GOLD ? 0.3 : 0.6, style.insert === GOLD ? 1 : 0);
+    ctx.fillStyle = ink(mode, style.insert, style.insert === GOLD ? 0.55 : 0.92, style.insert === GOLD ? 1 : 0);
     for (let i = 0; i < 6; i++) {
       const a = (i / 6) * Math.PI * 2;
       const w = 0.2;
@@ -97,7 +97,7 @@ export function chipTextures(style: ChipStyle): TexturePair {
     }
 
     // Мелкие метки между вставками
-    ctx.fillStyle = ink(mode, style.insert, 0.48, style.insert === GOLD ? 1 : 0);
+    ctx.fillStyle = ink(mode, style.insert, 0.9, style.insert === GOLD ? 1 : 0);
     for (let i = 0; i < 6; i++) {
       const a = ((i + 0.5) / 6) * Math.PI * 2;
       ctx.beginPath();
@@ -106,14 +106,14 @@ export function chipTextures(style: ChipStyle): TexturePair {
     }
 
     // Кольцо фольги
-    ctx.strokeStyle = ink(mode, foil, 0.22, foilIsMetal ? 1 : 0);
+    ctx.strokeStyle = ink(mode, foil, 0.55, foilIsMetal ? 1 : 0);
     ctx.lineWidth = R * 0.022;
     ctx.beginPath();
     ctx.arc(c, c, R * 0.72, 0, Math.PI * 2);
     ctx.stroke();
 
     // Центральная вклейка
-    ctx.fillStyle = ink(mode, style.inlay, 0.42);
+    ctx.fillStyle = ink(mode, style.inlay, 0.9);
     ctx.beginPath();
     ctx.arc(c, c, R * 0.6, 0, Math.PI * 2);
     ctx.fill();
@@ -123,7 +123,7 @@ export function chipTextures(style: ChipStyle): TexturePair {
     ctx.stroke();
 
     // Номинал
-    ctx.fillStyle = ink(mode, foil, 0.22, foilIsMetal ? 1 : 0);
+    ctx.fillStyle = ink(mode, foil, 0.55, foilIsMetal ? 1 : 0);
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     const big = style.value.length > 3 ? 0.3 : 0.38;
@@ -218,19 +218,19 @@ export function aceTextures(kind: "spade" | "heart"): TexturePair {
   const foil = "#b8924a";
 
   return pair(W, H, (ctx, mode) => {
-    ctx.fillStyle = ink(mode, "#f5f0e4", 0.4);
+    ctx.fillStyle = ink(mode, "#f5f0e4", 0.92);
     ctx.fillRect(0, 0, W, H);
 
     const half = () => {
       // индекс в углу
-      ctx.fillStyle = ink(mode, suitColor, 0.36);
+      ctx.fillStyle = ink(mode, suitColor, 0.9);
       ctx.textAlign = "center";
       ctx.textBaseline = "alphabetic";
       ctx.font = `700 110px Georgia, "Times New Roman", serif`;
       ctx.fillText("A", 64, 132);
       suit(ctx, kind, 64, 186, 46);
       // брендирование: «БАЗА» золотой фольгой над центральной мастью
-      ctx.fillStyle = ink(mode, foil, 0.2, 1);
+      ctx.fillStyle = ink(mode, foil, 0.88, 0);
       brand(ctx, W / 2, 206, 62);
       ctx.fillRect(W / 2 - 96, 250, 192, 3);
     };
@@ -242,7 +242,7 @@ export function aceTextures(kind: "spade" | "heart"): TexturePair {
     ctx.restore();
 
     // крупная масть в центре
-    ctx.fillStyle = ink(mode, suitColor, 0.36);
+    ctx.fillStyle = ink(mode, suitColor, 0.9);
     suit(ctx, kind, W / 2, H / 2, 150);
   });
 }
